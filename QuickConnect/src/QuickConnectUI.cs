@@ -1,0 +1,234 @@
+﻿using System;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using HarmonyLib; // Für AccessTools
+using UnityEngine.SceneManagement;
+
+namespace QuickConnect
+{
+    class QuickConnectUI : MonoBehaviour
+    {
+        public static QuickConnectUI instance;
+
+        private Task<IPHostEntry> resolveTask;
+        private Servers.Entry connecting;
+
+        [HarmonyPatch(typeof(FejdStartup), "Awake")]
+        class FejdStartupPatch
+        {
+            static void Postfix()
+            {
+                Mod.Log.LogInfo("FejdStartupPatch Awake");
+
+                if (QuickConnectUI.instance == null)
+                {
+                    Mod.Log.LogInfo("FejdStartupPatch Awake create");
+
+                    var go = new GameObject("QuickConnectUI");
+                    QuickConnectUI.instance = go.AddComponent<QuickConnectUI>();
+                    UnityEngine.Object.DontDestroyOnLoad(go);
+                }
+            }
+        }
+
+        void OnGui()
+        {
+            Mod.Log.LogInfo("OnGui");
+
+        }
+        void Update()
+        {
+
+            if (resolveTask != null)
+            {
+                Mod.Log.LogInfo("resolveTask != null");
+
+                if (resolveTask.IsFaulted)
+                {
+                    Mod.Log.LogInfo("resolveTask IsFaulted");
+
+                    Mod.Log.LogError($"Error resolving IP: {resolveTask.Exception}");
+                    //ShowError(resolveTask.Exception.InnerException?.Message ?? resolveTask.Exception.Message);
+                    resolveTask = null;
+                    connecting = null;
+                }
+                else if (resolveTask.IsCanceled)
+                {
+                    Mod.Log.LogInfo("resolveTask IsCanceled");
+
+                    resolveTask = null;
+                    connecting = null;
+                }
+                else if (resolveTask.IsCompleted)
+                {
+                    Mod.Log.LogInfo("resolveTask IsCompleted");
+
+                    foreach (var addr in resolveTask.Result.AddressList)
+                    {
+                        if (addr.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            Mod.Log.LogInfo($"Resolved: {addr}");
+                            resolveTask = null;
+                            ZSteamMatchmaking.instance.QueueServerJoin($"{addr}:{connecting.port}");
+                            return;
+                        }
+                    }
+                    resolveTask = null;
+                    connecting = null;
+                    //ShowError("Server DNS resolved to no valid addresses");
+                }
+            }
+        }
+
+        /* ================================================================= */
+        /* Hauptmenü fertig → Button bauen                                   */
+        /* ================================================================= */
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Mod.Log.LogInfo("OnSceneLoaded");
+
+            if (scene.name.ToLower() != "start") return;
+            BuildJoinButton();
+        }
+        private void BuildJoinButton()
+        {
+            Mod.Log.LogInfo("BuildJoinButton");
+
+            if (GameObject.Find("JoinMyServerButton") != null) return;   // schon da
+
+            /* -------- Vorlage suchen -------- */
+            GameObject template = null;
+
+            if (template == null)
+            {
+                var menu = GameObject.Find("GuiRoot/GUI/StartGui/Menu");
+                template = menu?.GetComponentsInChildren<Button>(true)
+                           .FirstOrDefault(b => b.gameObject.activeSelf)?.gameObject;
+            }
+
+            // (d) Wenn alles scheitert: eigenen Canvas bauen
+            Canvas ownCanvas = null;
+            if (template == null)
+            {
+                ownCanvas = new GameObject("JoinMyServerCanvas").AddComponent<Canvas>();
+                ownCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                ownCanvas.sortingOrder = 999;
+                ownCanvas.gameObject.AddComponent<CanvasScaler>()
+                         .uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
+                template = new GameObject("OverlayBtn",
+                                          typeof(RectTransform),
+                                          typeof(Button),
+                                          typeof(Image));
+                template.transform.SetParent(ownCanvas.transform, false);
+                var t = new GameObject("Text",
+                                       typeof(RectTransform),
+                                       typeof(TextMeshProUGUI));
+                t.transform.SetParent(template.transform, false);
+                var tmp = t.GetComponent<TextMeshProUGUI>();
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.fontSize = 28;
+            }
+
+            /* -------- Klonen & anpassen -------- */
+            var go = Instantiate(template, template.transform.parent, false);
+            go.name = "JoinMyServerButton";
+            go.SetActive(true);
+
+            var txt = go.GetComponentInChildren<TextMeshProUGUI>();
+            if (txt != null) txt.text = "Join my Server";
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0);
+            rt.pivot = new Vector2(0.5f, 0);
+            rt.anchoredPosition = new Vector2(0, 220);
+            rt.SetAsLastSibling();  // ← diese Zeile gleich entfernen oder ändern
+
+
+            var menu2 = GameObject.Find("GuiRoot/GUI/StartGui/Menu");
+            GameObject startButton = null;
+            startButton = menu2?.GetComponentsInChildren<Button>(true)
+                       .FirstOrDefault(b => b.gameObject.activeSelf)?.gameObject;
+            if (startButton != null)
+            {
+                go.transform.SetSiblingIndex(startButton.transform.GetSiblingIndex());
+            }
+            else
+            {
+                Mod.Log.LogWarning("Start Game button not found → Join My Server button stays at end");
+            }
+
+
+            var btn = go.GetComponent<Button>() ?? go.AddComponent<Button>();
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() =>
+            {
+                if (Servers.entries.Count > 0)
+                {
+                    Mod.Log.LogInfo("BuildJoinButton Build DoConnect");
+                    DoConnect(Servers.entries[0]);
+                }
+                else
+                {
+                    Mod.Log.LogInfo("No servers defined");
+
+                    //ShowError("No servers defined");
+                }
+            });
+        }
+
+        void Awake()
+        {
+            instance = this;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            Mod.Log.LogInfo("Awake");
+            Servers.Init();
+        }
+
+        private void DoConnect(Servers.Entry server)
+        {
+            connecting = server;
+            Mod.Log.LogInfo("DoConnect");
+
+            try
+            {
+                IPAddress.Parse(server.ip);
+                ZSteamMatchmaking.instance.QueueServerJoin($"{server.ip}:{server.port}");
+            }
+            catch (FormatException)
+            {
+                Mod.Log.LogInfo($"Resolving: {server.ip}");
+                resolveTask = Dns.GetHostEntryAsync(server.ip);
+            }
+        }
+
+        public void ShowError(string msg)
+        {
+            //errorMsg = msg;
+            Debug.LogError($"QuickConnect Error: {msg}");
+            // Hier könntest du später ein separates Error-Panel bauen
+        }
+
+        public string CurrentPass()
+        {
+            return connecting?.pass;
+        }
+
+        public void JoinServerFailed()
+        {
+            ShowError("Server connection failed");
+            connecting = null;
+        }
+
+        public void AbortConnect()
+        {
+            connecting = null;
+            resolveTask = null;
+        }
+    }
+}
