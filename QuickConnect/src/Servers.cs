@@ -29,7 +29,6 @@ namespace QuickConnect
             entries.Clear();
             try
             {
-                Mod.Log.LogInfo("Init");
                 if (File.Exists(ConfigPath))
                 {
                     using (var file = new StreamReader(ConfigPath))
@@ -48,7 +47,6 @@ namespace QuickConnect
                                 string aPass = null;
                                 if (split.Length >= 4)
                                     aPass = split[3];
-                                Mod.Log.LogInfo("entries.Add");
 
                                 entries.Add(new Entry
                                 {

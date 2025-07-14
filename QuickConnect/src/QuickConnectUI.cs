@@ -23,35 +23,21 @@ namespace QuickConnect
         {
             static void Postfix()
             {
-                Mod.Log.LogInfo("FejdStartupPatch Awake");
-
                 if (QuickConnectUI.instance == null)
                 {
-                    Mod.Log.LogInfo("FejdStartupPatch Awake create");
-
                     var go = new GameObject("QuickConnectUI");
                     QuickConnectUI.instance = go.AddComponent<QuickConnectUI>();
                     UnityEngine.Object.DontDestroyOnLoad(go);
                 }
             }
         }
-
-        void OnGui()
-        {
-            Mod.Log.LogInfo("OnGui");
-
-        }
         void Update()
         {
 
             if (resolveTask != null)
             {
-                Mod.Log.LogInfo("resolveTask != null");
-
                 if (resolveTask.IsFaulted)
                 {
-                    Mod.Log.LogInfo("resolveTask IsFaulted");
-
                     Mod.Log.LogError($"Error resolving IP: {resolveTask.Exception}");
                     //ShowError(resolveTask.Exception.InnerException?.Message ?? resolveTask.Exception.Message);
                     resolveTask = null;
@@ -59,15 +45,11 @@ namespace QuickConnect
                 }
                 else if (resolveTask.IsCanceled)
                 {
-                    Mod.Log.LogInfo("resolveTask IsCanceled");
-
                     resolveTask = null;
                     connecting = null;
                 }
                 else if (resolveTask.IsCompleted)
                 {
-                    Mod.Log.LogInfo("resolveTask IsCompleted");
-
                     foreach (var addr in resolveTask.Result.AddressList)
                     {
                         if (addr.AddressFamily == AddressFamily.InterNetwork)
@@ -90,15 +72,11 @@ namespace QuickConnect
         /* ================================================================= */
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            Mod.Log.LogInfo("OnSceneLoaded");
-
             if (scene.name.ToLower() != "start") return;
             BuildJoinButton();
         }
         private void BuildJoinButton()
         {
-            Mod.Log.LogInfo("BuildJoinButton");
-
             if (GameObject.Find("JoinMyServerButton") != null) return;   // schon da
 
             /* -------- Vorlage suchen -------- */
@@ -141,7 +119,7 @@ namespace QuickConnect
             go.SetActive(true);
 
             var txt = go.GetComponentInChildren<TextMeshProUGUI>();
-            if (txt != null) txt.text = "Join my Server";
+            if (txt != null) txt.text = "Join " + Servers.entries[0].name;
 
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0);
@@ -170,14 +148,11 @@ namespace QuickConnect
             {
                 if (Servers.entries.Count > 0)
                 {
-                    Mod.Log.LogInfo("BuildJoinButton Build DoConnect");
                     DoConnect(Servers.entries[0]);
                 }
                 else
                 {
                     Mod.Log.LogInfo("No servers defined");
-
-                    //ShowError("No servers defined");
                 }
             });
         }
