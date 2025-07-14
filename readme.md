@@ -25,9 +25,3 @@ name:addr:port[:password]
 ```
 Awesome Server:127.0.0.1:2456:smellysocks
 ```
-
-## Links
-
-[Nexus Mods](https://www.nexusmods.com/valheim/mods/193)
-
-[Thunderstore](https://valheim.thunderstore.io/package/bdew/QuickConnect/)
