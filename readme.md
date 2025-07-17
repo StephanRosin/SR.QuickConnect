@@ -17,7 +17,7 @@ It allows you to quickly connect to a pre-defined dedicated server without going
 ## 🛠 Installation
 
 1. Make sure you have [BepInEx 5.x](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/) installed.
-2. Download the compiled `QuickConnect.dll`.
+2. Download the compiled `QuickConnect.dll` --> https://github.com/StephanRosin/SR.QuickConnect/releases/tag/release.
 3. Place the DLL into your `Valheim/BepInEx/plugins/` folder.
 4. Launch the game once to generate the config file (see below).
 
