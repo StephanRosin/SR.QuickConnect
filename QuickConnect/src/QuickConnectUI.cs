@@ -8,14 +8,13 @@ using UnityEngine;
 using UnityEngine.UI;
 using HarmonyLib; // Für AccessTools
 using UnityEngine.SceneManagement;
-using System.Collections;
 
 namespace QuickConnect
 {
     class QuickConnectUI : MonoBehaviour
     {
         public static QuickConnectUI instance;
-        private Coroutine _connectWatchdog;
+
         private Task<IPHostEntry> resolveTask;
         private Servers.Entry connecting;
 
@@ -76,31 +75,6 @@ namespace QuickConnect
             if (scene.name.ToLower() != "start") return;
             BuildJoinButton();
         }
-        private IEnumerator ConnectWatchdog(float seconds)
-        {
-            float t = 0f;
-            while (t < seconds)
-            {
-                // Methode 1: Auf Peers prüfen
-                if (ZNet.instance != null && ZNet.instance.GetPeers().Count > 0)
-                {
-                    yield break;
-                }
-
-                // Methode 2: Szenewechsel
-                if (SceneManager.GetActiveScene().name != "start")
-                {
-                    yield break;
-                }
-
-                t += Time.unscaledDeltaTime;
-                yield return null;
-            }
-
-            Mod.Log.LogWarning("[QuickConnect] Connection timeout – treating as failed.");
-            JoinServerFailed();
-        }
-
         private void BuildJoinButton()
         {
             if (GameObject.Find("JoinMyServerButton") != null) return;   // schon da
@@ -190,20 +164,7 @@ namespace QuickConnect
             Mod.Log.LogInfo("Awake");
             Servers.Init();
         }
-        private void StopWatchdog()
-        {
-            if (_connectWatchdog != null)
-            {
-                StopCoroutine(_connectWatchdog);
-                _connectWatchdog = null;
-            }
-        }
 
-        private void StartWatchdog(float seconds = 20f)
-        {
-            StopWatchdog();
-            _connectWatchdog = StartCoroutine(ConnectWatchdog(seconds));
-        }
         private void DoConnect(Servers.Entry server)
         {
             connecting = server;
@@ -219,8 +180,6 @@ namespace QuickConnect
                 Mod.Log.LogInfo($"Resolving: {server.ip}");
                 resolveTask = Dns.GetHostEntryAsync(server.ip);
             }
-
-            StartWatchdog(20f); // ← hier aktivieren
         }
         public void ShowError(string msg)
         {
@@ -236,10 +195,8 @@ namespace QuickConnect
 
         public void JoinServerFailed()
         {
-            StopWatchdog();
             ShowError("Server connection failed");
             connecting = null;
-            resolveTask = null;
         }
 
         public void AbortConnect()

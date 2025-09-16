@@ -1,27 +1,70 @@
-# Quick Connect mod for Valheim
+# QuickConnect for Valheim
 
-Adds a quick connect window with a configurable list of servers, no more dealing with steam's buggy favorites widow and entering passwords (twice).  
-  
-**Installation**
-1.  [Install BepInEx](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/) following the instructions at the link.
-      * If you have Valheim Plus, you can skip that step as it already includes it with the download.
-3.  Extract the zip file into your BepInEx folder
-4.  Edit quick_connect_servers.cfg in BepInEx/config folder to add your servers
-5.  Run the game and press connect button on title screen
+**QuickConnect** is a Valheim mod that adds a **"Join my Server"** button to the game's main menu.  
+It allows you to quickly connect to a pre-defined dedicated server without going through the server browser.
 
-Config file has a list of servers in the following format:
-  
+---
 
-```
-name:addr:port[:password]
-```
+## ✨ Features
 
-**addr** can be ether IP or a fully qualified domain name.
+- Adds a new **"Join my Server"** button directly above the "Start Game" button.
+- Automatically connects to your configured server.
+- DNS resolution support (you can use domain names, not just IPs).
+- Simple plain-text config file for server info.
 
-**password** is optional, you can skip it if your server doesn't need a password or if you don't want to write it down.
-  
-**Example config:**
+---
 
-```
-Awesome Server:127.0.0.1:2456:smellysocks
-```
+## 🛠 Installation
+
+1. Make sure you have [BepInEx 5.x](https://valheim.thunderstore.io/package/denikson/BepInExPack_Valheim/) installed.
+2. Download the compiled `QuickConnect.dll` --> https://github.com/StephanRosin/SR.QuickConnect/releases/tag/release.
+3. Place the DLL into your `Valheim/BepInEx/plugins/` folder.
+4. Launch the game once to generate the config file (see below).
+
+---
+
+## ⚙️ Configuration
+
+After first launch, a config file will be created at:
+BepInEx/config/quick_connect_servers.cfg
+
+Edit this file to define one or more servers:
+Format: name:ip:port:password
+
+Example:
+MyServer:play.example.com:2456:mypassword
+
+- `name`: label for menu entry
+- `ip`: IP address or domain name
+- `port`: The game's server port (usually `2456`)
+- `password`: Optional server password
+
+> ⚠️ Only the **first** entry in the list is currently used!
+
+---
+
+## ✅ How to Use
+
+1. Launch Valheim.
+2. In the main menu, click the new **"Join my Server"** button.
+3. The mod will try to connect to the first server from your config.
+4. If DNS is used, resolution is handled in the background.
+
+---
+
+## 🐛 Troubleshooting
+
+- Make sure the server info in `quick_connect_servers.cfg` is correct.
+- If the "Join my Server" button doesn't appear, make sure:
+  - The mod DLL is loaded (check your BepInEx log).
+  - The scene name is still `"start"` (mod is scene-aware).
+- Check `BepInEx/LogOutput.log` for error messages.
+
+---
+
+## 💡 Planned Features
+
+- Support for selecting between multiple servers
+- In-game UI for editing servers
+- Persistent server passwords via encrypted config
+
